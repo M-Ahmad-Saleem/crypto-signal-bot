@@ -1,0 +1,39 @@
+name: XRP Signal Bot — 30M
+
+on:
+  schedule:
+    # Har 30 minute pe run (UTC) — candle close hone ke thodi der baad
+    - cron: "2,32 * * * *"
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas numpy
+
+      - name: Run XRP Signal Bot
+        env:
+          GMAIL_USER:   ${{ secrets.GMAIL_USER }}
+          GMAIL_PASS:   ${{ secrets.GMAIL_PASS }}
+          NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+        run: python xrp_signal_bot.py
+
+      - name: Commit updated position state
+        run: |
+          git config --global user.name "xrp-bot"
+          git config --global user.email "bot@github-actions.local"
+          git add position_state.json
+          git diff --staged --quiet || git commit -m "Update position state [skip ci]"
+          git push
